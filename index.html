@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Architects & Designers CRM</title>
-    <!-- Tesseract.js for Business Card Scanning -->
+    <!-- Tesseract.js for Business Card OCR Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
@@ -202,15 +202,15 @@
     <div id="addModal" class="modal">
         <div class="modal-content">
             <h3>Add Architect / Designer</h3>
-            <div class="form-group">
-                <label>📷 Scan Business Card Image</label>
+            <div class="form-group" style="background:#eef7ff; padding:10px; border-radius:8px;">
+                <label>📷 Take Photo / Upload Visiting Card</label>
                 <input type="file" id="cardScanner" accept="image/*" onchange="scanCard(event)">
-                <small id="ocrStatus" style="color: blue;"></small>
+                <small id="ocrStatus" style="color: #0066cc; font-weight:bold; display:block; margin-top:4px;"></small>
             </div>
             <form id="architectForm" onsubmit="saveArchitect(event)">
                 <div class="form-group">
                     <label>Architect / Firm Name*</label>
-                    <input type="text" id="name" required>
+                    <input type="text" id="name" placeholder="Auto-filled or type manually" required>
                 </div>
                 <div class="form-group">
                     <label>City</label>
@@ -227,11 +227,11 @@
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" id="phone">
+                    <input type="tel" id="phone" placeholder="Auto-filled or type manually">
                 </div>
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" id="email">
+                    <input type="email" id="email" placeholder="Auto-filled or type manually">
                 </div>
                 <div class="form-group">
                     <label>Potential Level</label>
@@ -243,7 +243,7 @@
                 </div>
                 <div class="form-group">
                     <label>Follow-up Notes</label>
-                    <textarea id="notes" rows="2"></textarea>
+                    <textarea id="notes" rows="2" placeholder="Enter notes..."></textarea>
                 </div>
                 <input type="hidden" id="cardImgData">
                 <button type="submit" style="width:100%; padding:10px; background:#28a745; color:#fff; border:none; border-radius:6px; font-weight:bold;">Save Contact</button>
@@ -256,18 +256,16 @@
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <h3>⚙️ Settings & Backup</h3>
-            <p style="font-size: 12px; color: #666;">Manage your data storage, download backups to Google Drive, or restore existing JSON files.</p>
+            <p style="font-size: 12px; color: #666;">Manage your database backups and restore saved JSON files to/from Google Drive.</p>
             
             <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
                 <label>☁️ Export Backup File</label>
                 <button onclick="backupToDrive()" style="width:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:6px; font-weight:bold;">Download JSON Backup</button>
-                <small style="color: #666;">Save this downloaded file to your Google Drive folder.</small>
             </div>
 
             <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
                 <label>📥 Restore Backup (.json file)</label>
                 <input type="file" id="jsonImporter" accept=".json" onchange="restoreFromDrive(event)">
-                <small style="color: #666;">Select a saved JSON file from Google Drive to reload your database.</small>
             </div>
 
             <button type="button" onclick="closeModal('settingsModal')" style="width:100%; padding:8px; margin-top:15px; background:#ccc; border:none; border-radius:6px;">Close</button>
@@ -343,30 +341,39 @@
         function openModal(id) { document.getElementById(id).style.display = 'block'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+        // OCR Scanner & Form Auto-fill Logic
         async function scanCard(event) {
             const file = event.target.files[0];
             if (!file) return;
 
+            // Save image thumbnail for card display
             const reader = new FileReader();
             reader.onload = function(e) { document.getElementById('cardImgData').value = e.target.result; };
             reader.readAsDataURL(file);
 
             const status = document.getElementById('ocrStatus');
-            status.innerText = 'Scanning card details...';
+            status.innerText = '⏳ Reading card text...';
             
             try {
                 const ret = await Tesseract.recognize(file, 'eng');
                 const text = ret.data.text;
                 
-                const emails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                const phones = text.match(/(\+?\d[\d\s-]{8,}\d)/);
+                // Regex extraction rules
+                const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                const phoneMatch = text.match(/(\+?\d[\d\s-]{8,}\d)/);
                 
-                if (emails) document.getElementById('email').value = emails[0];
-                if (phones) document.getElementById('phone').value = phones[0];
+                // Extract possible name (first non-empty text line)
+                const textLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+                const possibleName = textLines.length > 0 ? textLines[0] : '';
                 
-                status.innerText = 'Scan Complete!';
+                // Auto-fill form fields
+                if (possibleName) document.getElementById('name').value = possibleName;
+                if (emailMatch) document.getElementById('email').value = emailMatch[0];
+                if (phoneMatch) document.getElementById('phone').value = phoneMatch[0].replace(/\s+/g, '');
+                
+                status.innerText = '✅ Card Scanned! Verify & edit details below.';
             } catch (err) {
-                status.innerText = 'Manual entry required.';
+                status.innerText = '⚠️ Could not read card text automatically. Please enter details manually.';
             }
         }
 
@@ -390,9 +397,9 @@
             closeModal('addModal');
             renderCards();
             document.getElementById('architectForm').reset();
+            document.getElementById('ocrStatus').innerText = '';
         }
 
-        // Export JSON Backup
         function backupToDrive() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(contacts, null, 2));
             const dlAnchor = document.createElement('a');
@@ -401,10 +408,9 @@
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
-            alert("Backup file downloaded! Upload this JSON file to your Google Drive folder.");
+            alert("Backup file downloaded! Save this file directly to your Google Drive.");
         }
 
-        // Restore / Reload JSON Backup Function
         function restoreFromDrive(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -417,13 +423,13 @@
                         contacts = importedContacts;
                         localStorage.setItem('architect_contacts', JSON.stringify(contacts));
                         renderCards();
-                        alert("Database restored successfully! All records have been reloaded.");
+                        alert("Database restored successfully!");
                         closeModal('settingsModal');
                     } else {
-                        alert("Invalid file format. Please upload a valid JSON backup file.");
+                        alert("Invalid JSON format.");
                     }
                 } catch (err) {
-                    alert("Error reading JSON file. Make sure it is a valid backup file.");
+                    alert("Error reading JSON file.");
                 }
             };
             reader.readAsText(file);
