@@ -6,9 +6,6 @@
     <title>Architects & Designers CRM</title>
     <!-- Tesseract.js for Business Card Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- Google Identity Services (Drive Backup) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
 
     <style>
         :root {
@@ -17,7 +14,7 @@
             --high: #28a745;
             --warm: #fd7e14;
             --occ: #6c757d;
-            --text: #333;
+            --text: #333333;
         }
 
         body {
@@ -29,7 +26,7 @@
             padding-bottom: 80px;
         }
 
-        h2 { margin-top: 5px; margin-bottom: 12px; font-size: 22px; }
+        h2 { margin-top: 5px; margin-bottom: 12px; font-size: 22px; color: #444; }
 
         /* Potential Header Metrics */
         .metrics-grid {
@@ -81,9 +78,12 @@
             cursor: pointer;
             white-space: nowrap;
         }
-        .tab-btn.active { background: #333; color: #fff; }
+        .tab-btn.active {
+            background: #333;
+            color: #fff;
+        }
 
-        /* Lead Cards */
+        /* Lead Card Styling */
         .lead-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -108,32 +108,54 @@
         .card-notes { font-size: 12px; color: #444; margin-bottom: 6px; }
         .card-date { font-size: 10px; color: #888; }
 
-        .card-actions { display: flex; flex-direction: column; gap: 6px; }
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
         .action-btn {
-            text-decoration: none; font-size: 16px; padding: 4px 8px;
-            border-radius: 6px; background: #f0f0f0; text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: #f0f0f0;
+            text-align: center;
         }
 
-        /* Modal Popup */
+        /* Modals */
         .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); overflow-y: auto;
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow-y: auto;
+            z-index: 1000;
         }
         .modal-content {
-            background: #fff; margin: 20px auto; padding: 18px;
-            border-radius: 12px; width: 90%; max-width: 450px;
+            background: #fff;
+            margin: 20px auto;
+            padding: 18px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
         }
-        .form-group { margin-bottom: 10px; }
+        .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; }
         .form-group input, .form-group select, .form-group textarea {
             width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
         }
 
-        /* Bottom Nav */
+        /* Bottom Navigation Bar */
         .navbar {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 60px;
-            background: #fff; border-top: 1px solid #ddd;
-            display: flex; justify-content: space-around; align-items: center;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 60px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 999;
         }
         .nav-item {
             border: none; background: none; font-size: 11px; color: #555; cursor: pointer;
@@ -146,7 +168,7 @@
 
     <h2>Architects & Designers</h2>
 
-    <!-- Metrics Header -->
+    <!-- Potential Metrics -->
     <div class="metrics-grid">
         <div class="metric-card high">
             <div class="metric-title">High</div>
@@ -173,10 +195,10 @@
         <button class="tab-btn" onclick="setFilter('Occasional', this)">Occasional</button>
     </div>
 
-    <!-- Directory Container -->
+    <!-- Directory Cards Container -->
     <div id="cardsList"></div>
 
-    <!-- Add Contact / Scan Modal -->
+    <!-- Add Contact / OCR Scan Modal -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <h3>Add Architect / Designer</h3>
@@ -225,16 +247,38 @@
                 </div>
                 <input type="hidden" id="cardImgData">
                 <button type="submit" style="width:100%; padding:10px; background:#28a745; color:#fff; border:none; border-radius:6px; font-weight:bold;">Save Contact</button>
-                <button type="button" onclick="closeModal()" style="width:100%; padding:8px; margin-top:6px; background:#ccc; border:none; border-radius:6px;">Cancel</button>
+                <button type="button" onclick="closeModal('addModal')" style="width:100%; padding:8px; margin-top:6px; background:#ccc; border:none; border-radius:6px;">Cancel</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Settings & Database Backup/Restore Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h3>⚙️ Settings & Backup</h3>
+            <p style="font-size: 12px; color: #666;">Manage your data storage, download backups to Google Drive, or restore existing JSON files.</p>
+            
+            <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                <label>☁️ Export Backup File</label>
+                <button onclick="backupToDrive()" style="width:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:6px; font-weight:bold;">Download JSON Backup</button>
+                <small style="color: #666;">Save this downloaded file to your Google Drive folder.</small>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                <label>📥 Restore Backup (.json file)</label>
+                <input type="file" id="jsonImporter" accept=".json" onchange="restoreFromDrive(event)">
+                <small style="color: #666;">Select a saved JSON file from Google Drive to reload your database.</small>
+            </div>
+
+            <button type="button" onclick="closeModal('settingsModal')" style="width:100%; padding:8px; margin-top:15px; background:#ccc; border:none; border-radius:6px;">Close</button>
         </div>
     </div>
 
     <!-- Bottom Navigation Bar -->
     <div class="navbar">
         <button class="nav-item" onclick="renderCards()"><span>👥</span>Clients</button>
-        <button class="nav-item" onclick="openModal()"><span>➕</span>Add / Scan</button>
-        <button class="nav-item" onclick="backupToDrive()"><span>☁️</span>Drive Backup</button>
+        <button class="nav-item" onclick="openModal('addModal')"><span>➕</span>Add / Scan</button>
+        <button class="nav-item" onclick="openModal('settingsModal')"><span>⚙️</span>Settings</button>
     </div>
 
     <script>
@@ -262,9 +306,9 @@
 
             const filtered = contacts.filter(c => {
                 const matchesFilter = (currentFilter === 'All' || c.potential === currentFilter);
-                const matchesSearch = c.name.toLowerCase().includes(search) || 
-                                      c.specialization.toLowerCase().includes(search) || 
-                                      c.city.toLowerCase().includes(search);
+                const matchesSearch = (c.name || '').toLowerCase().includes(search) || 
+                                      (c.specialization || '').toLowerCase().includes(search) || 
+                                      (c.city || '').toLowerCase().includes(search);
                 return matchesFilter && matchesSearch;
             });
 
@@ -279,7 +323,7 @@
                 
                 list.innerHTML += `
                     <div class="lead-card">
-                        <img src="${img}" class="card-thumb">
+                        <img src="${img}" class="card-thumb" onclick="alert('Viewing full details for ${c.name}')">
                         <div class="card-details">
                             <div class="card-title">${c.name}</div>
                             <div class="card-sub">📍 ${c.city} | ${c.specialization}</div>
@@ -296,8 +340,8 @@
             });
         }
 
-        function openModal() { document.getElementById('addModal').style.display = 'block'; }
-        function closeModal() { document.getElementById('addModal').style.display = 'none'; }
+        function openModal(id) { document.getElementById(id).style.display = 'block'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         async function scanCard(event) {
             const file = event.target.files[0];
@@ -343,12 +387,12 @@
 
             contacts.unshift(newEntry);
             localStorage.setItem('architect_contacts', JSON.stringify(contacts));
-            closeModal();
+            closeModal('addModal');
             renderCards();
             document.getElementById('architectForm').reset();
         }
 
-        // Direct Download / Google Drive Backup Trigger
+        // Export JSON Backup
         function backupToDrive() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(contacts, null, 2));
             const dlAnchor = document.createElement('a');
@@ -357,7 +401,32 @@
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
-            alert("Backup JSON file generated! Save this file directly into your Google Drive folder.");
+            alert("Backup file downloaded! Upload this JSON file to your Google Drive folder.");
+        }
+
+        // Restore / Reload JSON Backup Function
+        function restoreFromDrive(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedContacts = JSON.parse(e.target.result);
+                    if (Array.isArray(importedContacts)) {
+                        contacts = importedContacts;
+                        localStorage.setItem('architect_contacts', JSON.stringify(contacts));
+                        renderCards();
+                        alert("Database restored successfully! All records have been reloaded.");
+                        closeModal('settingsModal');
+                    } else {
+                        alert("Invalid file format. Please upload a valid JSON backup file.");
+                    }
+                } catch (err) {
+                    alert("Error reading JSON file. Make sure it is a valid backup file.");
+                }
+            };
+            reader.readAsText(file);
         }
 
         renderCards();
