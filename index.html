@@ -195,6 +195,7 @@
             z-index: 999;
         }
         .nav-item {
+            flex: 1;
             border: none; background: none; font-size: 11px; color: #555; cursor: pointer;
             display: flex; flex-direction: column; align-items: center;
         }
@@ -367,6 +368,15 @@
         let currentFilter = 'All';
         let editingId = null;
 
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function sortContactsByClientName() {
             contacts.sort((a, b) => {
                 const an = (a.clientName || a.name || '').toLowerCase();
@@ -406,7 +416,6 @@
                 return matchesFilter && matchesSearch;
             });
 
-            // Sort alphabetically by client name first, falling back to firm name only when there's no client name
             filtered.sort((a, b) => {
                 const an = (a.clientName || a.name || '').toLowerCase();
                 const bn = (b.clientName || b.name || '').toLowerCase();
@@ -421,8 +430,8 @@
             filtered.forEach(c => {
                 const img = c.cardImg || 'https://via.placeholder.com/70?text=Card';
                 const cleanPhone = (c.phone || '').replace(/\D/g, '');
-                const clientName = c.clientName || c.name || 'Unnamed';
-                const firmName = c.firmName ? `${c.firmName} · ` : '';
+                const clientName = escapeHtml(c.clientName || c.name || 'Unnamed');
+                const firmName = c.firmName ? `${escapeHtml(c.firmName)} · ` : '';
                 const reminderHtml = reminderBadge(c);
 
                 list.innerHTML += `
@@ -431,16 +440,16 @@
                             <img src="${img}" class="card-thumb" onclick="openEditModal(${c.id})">
                             <div class="card-details">
                                 <div class="card-title" onclick="openEditModal(${c.id})" style="cursor:pointer;">${clientName}</div>
-                                <div class="card-sub">${firmName}📍 ${c.city} | ${c.specialization}</div>
-                                <div class="card-notes">${c.notes || 'No notes added.'}</div>
-                                <div class="card-date">Last contact: ${c.date}</div>
+                                <div class="card-sub">${firmName}📍 ${escapeHtml(c.city || '')} | ${escapeHtml(c.specialization || '')}</div>
+                                <div class="card-notes">${escapeHtml(c.notes || 'No notes added.')}</div>
+                                <div class="card-date">Last contact: ${escapeHtml(c.date || '')}</div>
                                 ${reminderHtml}
                             </div>
                         </div>
                         <div class="card-actions">
-                            ${cleanPhone ? `<a href="tel:${cleanPhone}" class="action-btn">📞</a>` : ''}
-                            ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" class="action-btn">💬</a>` : ''}
-                            ${c.email ? `<a href="mailto:${c.email}" class="action-btn">✉️</a>` : ''}
+                            ${cleanPhone ? `<a href="tel:${escapeHtml(cleanPhone)}" class="action-btn">📞</a>` : ''}
+                            ${cleanPhone ? `<a href="https://wa.me/${escapeHtml(cleanPhone)}" class="action-btn">💬</a>` : ''}
+                            ${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="action-btn">✉️</a>` : ''}
                             <button class="action-btn" style="border:none; cursor:pointer;" onclick="openReminderModal(${c.id})">⏰</button>
                             <button class="action-btn" style="border:none; cursor:pointer;" onclick="openEditModal(${c.id})">✏️</button>
                             <button class="action-btn" style="border:none; cursor:pointer; background:#fdeaea;" onclick="deleteContact(${c.id})">🗑️</button>
@@ -478,7 +487,7 @@
                 
                 // Regex extraction rules
                 const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                const phoneMatch = text.match(/(\+?\d[\d\s-]{8,}\d)/);
+                const phoneMatch = text.match(/(\+?\d[\d\s().-]{8,}\d)/);
                 
                 // Extract possible name (first non-empty text line)
                 const textLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
